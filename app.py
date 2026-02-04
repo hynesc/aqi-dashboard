@@ -693,18 +693,26 @@ if show_history:
                         domain=["Hourly AQI", f"Rolling avg ({rolling_hours}h)"],
                         range=["#1f77b4", "#ff7f0e"],
                     ),
-                    legend=alt.Legend(title=None, orient="top"),
+                    legend=alt.Legend(
+                        title=None,
+                        orient="bottom",
+                        direction="horizontal",
+                        columns=2,
+                        labelFontSize=11,
+                        symbolSize=120,
+                        symbolStrokeWidth=3,
+                    ),
                 ),
                 tooltip=["dt", "series", "value"],
             )
-            .properties(height=260, title="Historical AQI Trend")
+            .properties(height=320, title="Historical AQI Trend")
         )
         if prev_24h is not None and not math.isnan(prev_24h):
             delta = latest_24h - prev_24h
             trend_label = "Improving" if delta < 0 else "Worsening"
             st.markdown(
                 f"""
-<div class="metric-card">
+<div class="metric-card" style="margin-bottom:12px;">
   <div class="metric-label">Last 24h vs previous 24h</div>
   <div class="metric-value">{trend_label}</div>
   <div class="metric-label">Δ AQI {delta:+.2f}</div>
