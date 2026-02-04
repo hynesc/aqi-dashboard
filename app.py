@@ -706,13 +706,6 @@ if show_history:
                 tooltip=["dt", "series", "value"],
             )
             .properties(height=320, title="Historical AQI Trend")
-            .configure_legend(
-                padding=0,
-                labelPadding=2,
-                titlePadding=0,
-                symbolPadding=4,
-                offset=0,
-            )
         )
         if prev_24h is not None and not math.isnan(prev_24h):
             delta = latest_24h - prev_24h
