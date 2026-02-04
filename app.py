@@ -483,9 +483,9 @@ for aqi in [1, 2, 3, 4, 5]:
     cities = summary_df.loc[summary_df["aqi"] == aqi, "city"].tolist()
     buckets.append({"aqi": aqi, "label": AQI_LABELS[aqi], "cities": cities})
 
-bucket_cols = st.columns(2)
+bucket_cols = st.columns(3)
 for idx, bucket in enumerate(buckets):
-    col = bucket_cols[idx % 2]
+    col = bucket_cols[idx % 3]
     with col:
         st.markdown(
             f"""
