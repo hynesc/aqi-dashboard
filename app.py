@@ -648,11 +648,14 @@ if show_history:
             history_df = pd.DataFrame()
 
     if not history_df.empty:
+        history_df = history_df.sort_values("dt")
+        max_dt = history_df["dt"].max()
+        cutoff = max_dt - timedelta(days=history_days)
+        history_df = history_df.loc[history_df["dt"] >= cutoff]
         history_range = f"Last {history_days} days • Updated {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
         st.caption(history_range)
         if rolling_hours > history_days * 24:
             st.info("Rolling window exceeds available history; line reflects available data.")
-        history_df = history_df.sort_values("dt")
         history_df = history_df.set_index("dt")
         history_df["aqi_roll"] = history_df["aqi"].rolling(
             f"{rolling_hours}H", min_periods=1
@@ -669,12 +672,14 @@ if show_history:
                 "aqi_roll": f"Rolling avg ({rolling_hours}h)",
             }
         )
+        y_min = max(1.0, history_melt["value"].min() - 0.2)
+        y_max = min(5.0, history_melt["value"].max() + 0.2)
         history_line = (
             alt.Chart(history_melt)
             .mark_line()
             .encode(
                 x=alt.X("dt:T", title="UTC"),
-                y=alt.Y("value:Q", scale=alt.Scale(domain=[1, 5])),
+                y=alt.Y("value:Q", scale=alt.Scale(domain=[y_min, y_max])),
                 color=alt.Color(
                     "series:N",
                     scale=alt.Scale(
