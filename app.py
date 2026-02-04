@@ -294,8 +294,6 @@ with st.sidebar:
         default=default_cities,
     )
     show_history = st.checkbox("Show historical trends", value=True)
-    history_days = st.slider("History window (days)", min_value=1, max_value=5, value=3)
-    rolling_hours = st.selectbox("Rolling average (hours)", [6, 12, 24, 168], index=2)
     st.caption("Tip: Provide the API key via `OPENWEATHER_API_KEY` or Streamlit secrets.")
 
 hero_col = st.container()
@@ -619,6 +617,19 @@ else:
 
 if show_history:
     st.subheader("Historical Trends")
+    st.markdown(
+        "Track how AQI has moved over the selected window. The orange line smooths "
+        "short-term swings with the rolling average."
+    )
+    history_controls = st.columns([1, 1])
+    with history_controls[0]:
+        history_days = st.slider(
+            "History window (days)", min_value=1, max_value=5, value=3
+        )
+    with history_controls[1]:
+        rolling_hours = st.selectbox(
+            "Rolling average (hours)", [6, 12, 24, 168], index=2
+        )
     if use_demo:
         history_df = history_to_df(selected_payload.get("history", {}))
     else:
@@ -637,6 +648,8 @@ if show_history:
             history_df = pd.DataFrame()
 
     if not history_df.empty:
+        history_range = f"Last {history_days} days • Updated {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
+        st.caption(history_range)
         if rolling_hours > history_days * 24:
             st.info("Rolling window exceeds available history; line reflects available data.")
         history_df = history_df.sort_values("dt")
@@ -650,6 +663,12 @@ if show_history:
         history_melt = history_plot.melt(
             id_vars="dt", value_vars=["aqi", "aqi_roll"], var_name="series", value_name="value"
         )
+        history_melt["series"] = history_melt["series"].map(
+            {
+                "aqi": "Hourly AQI",
+                "aqi_roll": f"Rolling avg ({rolling_hours}h)",
+            }
+        )
         history_line = (
             alt.Chart(history_melt)
             .mark_line()
@@ -658,7 +677,10 @@ if show_history:
                 y=alt.Y("value:Q", scale=alt.Scale(domain=[1, 5])),
                 color=alt.Color(
                     "series:N",
-                    scale=alt.Scale(domain=["aqi", "aqi_roll"], range=["#1f77b4", "#ff7f0e"]),
+                    scale=alt.Scale(
+                        domain=["Hourly AQI", f"Rolling avg ({rolling_hours}h)"],
+                        range=["#1f77b4", "#ff7f0e"],
+                    ),
                     legend=alt.Legend(title=None, orient="top"),
                 ),
                 tooltip=["dt", "series", "value"],
@@ -678,6 +700,17 @@ if show_history:
 """,
                 unsafe_allow_html=True,
             )
+        st.markdown(
+            f"""
+<div class="metric-card" style="margin-top:12px;">
+  <div class="metric-label">How to read this chart</div>
+  <div style="color:#0f172a;font-size:0.95rem;">
+    Blue is the hourly AQI. Orange is the {rolling_hours}-hour rolling average to show the underlying trend.
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
         st.altair_chart(history_line, use_container_width=True)
     else:
         st.info("Historical data not available for this city or time window.")
