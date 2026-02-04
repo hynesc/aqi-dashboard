@@ -276,6 +276,29 @@ html, body, [class*="css"]  {
   margin-right: 8px;
   color: #0f172a;
 }
+
+.focus-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  margin-bottom: 10px;
+}
+
+.focus-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.focus-subtitle {
+  color: #475569;
+  font-size: 0.95rem;
+  margin: 0;
+}
 </style>
 """,
     unsafe_allow_html=True,
@@ -560,9 +583,19 @@ for aqi in [1, 2, 3, 4, 5]:
     )
 st.markdown("".join(legend_items), unsafe_allow_html=True)
 
-st.subheader("City Detail")
+st.markdown(
+    """
+<div class="focus-card">
+  <div class="focus-title">City Focus</div>
+  <p class="focus-subtitle">Choose a city to drive detail, forecast, and historical trends below.</p>
+</div>
+""",
+    unsafe_allow_html=True,
+)
 detail_options = [p["loc"]["name"] for p in city_payloads]
-selected_city = st.selectbox("Select a city", detail_options, index=0, key="detail_city")
+selected_city = st.selectbox("Focused city", detail_options, index=0, key="detail_city")
+
+st.subheader("City Detail")
 selected_payload = next(p for p in city_payloads if p["loc"]["name"] == selected_city)
 
 current_aqi, current_components, current_ts = parse_current_aq(selected_payload["current"])
@@ -672,14 +705,12 @@ if show_history:
                 "aqi_roll": f"Rolling avg ({rolling_hours}h)",
             }
         )
-        y_min = max(1.0, history_melt["value"].min() - 0.2)
-        y_max = min(5.0, history_melt["value"].max() + 0.2)
         history_line = (
             alt.Chart(history_melt)
             .mark_line()
             .encode(
                 x=alt.X("dt:T", title="UTC"),
-                y=alt.Y("value:Q", scale=alt.Scale(domain=[y_min, y_max])),
+                y=alt.Y("value:Q", scale=alt.Scale(domain=[1, 5])),
                 color=alt.Color(
                     "series:N",
                     scale=alt.Scale(
