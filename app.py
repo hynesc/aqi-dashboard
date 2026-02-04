@@ -477,6 +477,7 @@ Median AQI {median_aqi:.1f} across selected cities.
     unsafe_allow_html=True,
 )
 
+st.markdown("---")
 st.subheader("Global Snapshot")
 buckets = []
 for aqi in [1, 2, 3, 4, 5]:
@@ -500,6 +501,7 @@ for idx, bucket in enumerate(buckets):
             unsafe_allow_html=True,
         )
 
+st.markdown("---")
 st.subheader("City Table")
 table_df = summary_df[["city", "aqi", "aqi_label", "pm2_5", "pm10", "top_pollutant"]].copy()
 table_df = table_df.rename(
@@ -520,6 +522,7 @@ styled_table = (
 )
 st.dataframe(styled_table, use_container_width=True, hide_index=True)
 
+st.markdown("---")
 st.subheader("Air Quality Map")
 map_df = pd.DataFrame(map_rows)
 map_df["color"] = map_df["aqi"].map(
@@ -556,6 +559,7 @@ for aqi in [1, 2, 3, 4, 5]:
     )
 st.markdown("".join(legend_items), unsafe_allow_html=True)
 
+st.markdown("---")
 st.subheader("City Focus")
 detail_options = [p["loc"]["name"] for p in city_payloads]
 selected_city = st.selectbox(
@@ -566,6 +570,7 @@ selected_city = st.selectbox(
 )
 st.caption("This selection updates the sections below.")
 
+st.markdown("---")
 st.subheader("City Detail")
 selected_payload = next(p for p in city_payloads if p["loc"]["name"] == selected_city)
 
@@ -620,6 +625,7 @@ else:
     st.info("Forecast data not available for this city.")
 
 if show_history:
+    st.markdown("---")
     st.subheader("Historical Trends")
     st.markdown(
         "Track how AQI has moved over the selected window. The orange line smooths "
