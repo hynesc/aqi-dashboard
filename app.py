@@ -286,10 +286,12 @@ with st.sidebar:
     st.header("Configuration")
     use_demo = st.toggle("Use demo data", value=False)
     api_key_input = st.text_input("OpenWeather API Key", type="password")
+    select_all = st.toggle("Select all cities", value=True)
+    default_cities = CITY_DEFAULTS if select_all else CITY_DEFAULTS[:5]
     city_selection = st.multiselect(
         "Cities",
         options=CITY_DEFAULTS,
-        default=["New York", "London", "Tokyo", "Delhi", "Sao Paulo"],
+        default=default_cities,
     )
     show_history = st.checkbox("Show historical trends", value=True)
     history_days = st.slider("History window (days)", min_value=1, max_value=5, value=3)
@@ -479,32 +481,27 @@ Median AQI {median_aqi:.1f} across selected cities.
 st.subheader("Global Snapshot")
 snapshot_left, snapshot_right = st.columns([2, 1])
 with snapshot_left:
-    base = (
-        alt.Chart(summary_df)
-        .mark_bar()
-        .encode(
-            x=alt.X("aqi:Q", scale=alt.Scale(domain=[1, 5]), title="AQI (1 = good, 5 = very poor)"),
-            y=alt.Y("city:N", sort=summary_df["city"].tolist(), title=None),
-            color=alt.Color(
-                "aqi:Q",
-                scale=alt.Scale(domain=[1, 5], range=[AQI_COLORS[i] for i in [1, 2, 3, 4, 5]]),
-                legend=None,
-            ),
-            tooltip=["city", "aqi", "aqi_label", "pm2_5", "pm10", "o3", "no2", "top_pollutant"],
-        )
-        .properties(height=420)
-    )
-    best_worst = summary_df.loc[[summary_df["aqi"].idxmin(), summary_df["aqi"].idxmax()]]
-    label = (
-        alt.Chart(best_worst)
-        .mark_text(align="left", dx=6, fontWeight="bold")
-        .encode(
-            x="aqi:Q",
-            y="city:N",
-            text=alt.value("★"),
-        )
-    )
-    st.altair_chart(base + label, use_container_width=True)
+    buckets = []
+    for aqi in [1, 2, 3, 4, 5]:
+        cities = summary_df.loc[summary_df["aqi"] == aqi, "city"].tolist()
+        buckets.append({"aqi": aqi, "label": AQI_LABELS[aqi], "cities": cities})
+
+    bucket_cols = st.columns(2)
+    for idx, bucket in enumerate(buckets):
+        col = bucket_cols[idx % 2]
+        with col:
+            st.markdown(
+                f"""
+<div class="metric-card" style="border-top:6px solid {AQI_COLORS[bucket['aqi']]}; margin-bottom:12px;">
+  <div class="metric-label">AQI {bucket['aqi']}</div>
+  <div class="metric-value">{bucket['label']}</div>
+  <div style="margin-top:10px;font-size:0.95rem;color:#0f172a;">
+    {"<br/>".join(bucket["cities"]) if bucket["cities"] else "<span style='color:#94a3b8;'>No cities</span>"}
+  </div>
+</div>
+""",
+                unsafe_allow_html=True,
+            )
 
 with snapshot_right:
     best_city = summary_df.sort_values("aqi").iloc[0]
@@ -529,74 +526,66 @@ with snapshot_right:
 """,
         unsafe_allow_html=True,
     )
-    st.dataframe(
-        summary_df[["city", "aqi", "aqi_label", "pm2_5", "pm10", "top_pollutant"]],
-        use_container_width=True,
-        height=290,
-    )
+
+st.subheader("City Table")
+table_df = summary_df[["city", "aqi", "aqi_label", "pm2_5", "pm10", "top_pollutant"]].copy()
+table_df = table_df.rename(
+    columns={
+        "city": "City",
+        "aqi": "AQI",
+        "aqi_label": "AQI Level",
+        "pm2_5": "PM2.5",
+        "pm10": "PM10",
+        "top_pollutant": "Top Pollutant",
+    }
+)
+styled_table = (
+    table_df.style
+    .format({"PM2.5": "{:.1f}", "PM10": "{:.1f}"})
+    .background_gradient(subset=["AQI"], cmap="RdYlGn_r")
+    .set_properties(**{"border": "1px solid #e2e8f0"})
+)
+st.dataframe(styled_table, use_container_width=True, hide_index=True)
 
 st.subheader("Air Quality Map")
-map_left, map_right = st.columns([2.4, 1])
-with map_left:
-    map_df = pd.DataFrame(map_rows)
-    map_df["color"] = map_df["aqi"].map(
-        lambda v: [
-            int(AQI_COLORS[v][1:3], 16),
-            int(AQI_COLORS[v][3:5], 16),
-            int(AQI_COLORS[v][5:7], 16),
-            170,
-        ]
-    )
-    map_df["radius"] = map_df["aqi"].map(lambda v: 35000 + (v - 1) * 15000)
-    layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=map_df,
-        get_position="[lon, lat]",
-        get_radius="radius",
-        get_fill_color="color",
-        pickable=True,
-    )
-    view_state = compute_view_state(map_df)
-    tooltip = {"text": "{city}\nAQI: {aqi}"}
-    deck = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip)
-    st.pydeck_chart(deck, use_container_width=True)
+map_df = pd.DataFrame(map_rows)
+map_df["color"] = map_df["aqi"].map(
+    lambda v: [
+        int(AQI_COLORS[v][1:3], 16),
+        int(AQI_COLORS[v][3:5], 16),
+        int(AQI_COLORS[v][5:7], 16),
+        170,
+    ]
+)
+map_df["radius"] = map_df["aqi"].map(lambda v: 80000 + (v - 1) * 25000)
+layer = pdk.Layer(
+    "ScatterplotLayer",
+    data=map_df,
+    get_position="[lon, lat]",
+    get_radius="radius",
+    get_fill_color="color",
+    pickable=True,
+)
+view_state = compute_view_state(map_df)
+tooltip = {"text": "{city}\nAQI: {aqi}"}
+deck = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip)
+st.pydeck_chart(deck, use_container_width=True)
 
-with map_right:
-    st.markdown(
-        "<div class='section-title'>Map Legend</div>",
-        unsafe_allow_html=True,
-    )
-    legend_items = []
-    for aqi in [1, 2, 3, 4, 5]:
-        legend_items.append(
-            f"""
+legend_items = []
+for aqi in [1, 2, 3, 4, 5]:
+    legend_items.append(
+        f"""
 <span class="legend-chip">
   <span style="width:12px;height:12px;border-radius:4px;background:{AQI_COLORS[aqi]};display:inline-block;"></span>
   <span>{aqi} - {AQI_LABELS[aqi]}</span>
 </span>
 """
-        )
-    st.markdown("".join(legend_items), unsafe_allow_html=True)
-    focus_options = summary_df["city"].tolist()
-    focus_city = st.selectbox("Map focus", focus_options, index=0, key="map_focus")
-    focus_row = summary_df.loc[summary_df["city"] == focus_city].iloc[0]
-    st.markdown(
-        f"""
-<div class="metric-card" style="margin-top:12px;">
-  <div class="metric-label">City snapshot</div>
-  <div class="metric-value">{focus_city}</div>
-  <div class="metric-label">AQI {focus_row['aqi']} • {focus_row['aqi_label']}</div>
-  <div class="metric-label">Top pollutant: {focus_row['top_pollutant']}</div>
-</div>
-""",
-        unsafe_allow_html=True,
     )
+st.markdown("".join(legend_items), unsafe_allow_html=True)
 
 st.subheader("City Detail")
 detail_options = [p["loc"]["name"] for p in city_payloads]
-default_city = st.session_state.get("map_focus", detail_options[0])
-default_index = detail_options.index(default_city) if default_city in detail_options else 0
-selected_city = st.selectbox("Select a city", detail_options, index=default_index, key="detail_city")
+selected_city = st.selectbox("Select a city", detail_options, index=0, key="detail_city")
 selected_payload = next(p for p in city_payloads if p["loc"]["name"] == selected_city)
 
 current_aqi, current_components, current_ts = parse_current_aq(selected_payload["current"])
