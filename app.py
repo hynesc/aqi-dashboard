@@ -478,19 +478,17 @@ Median AQI {median_aqi:.1f} across selected cities.
 )
 
 st.subheader("Global Snapshot")
-snapshot_left, snapshot_right = st.columns([2, 1])
-with snapshot_left:
-    buckets = []
-    for aqi in [1, 2, 3, 4, 5]:
-        cities = summary_df.loc[summary_df["aqi"] == aqi, "city"].tolist()
-        buckets.append({"aqi": aqi, "label": AQI_LABELS[aqi], "cities": cities})
+buckets = []
+for aqi in [1, 2, 3, 4, 5]:
+    cities = summary_df.loc[summary_df["aqi"] == aqi, "city"].tolist()
+    buckets.append({"aqi": aqi, "label": AQI_LABELS[aqi], "cities": cities})
 
-    bucket_cols = st.columns(2)
-    for idx, bucket in enumerate(buckets):
-        col = bucket_cols[idx % 2]
-        with col:
-            st.markdown(
-                f"""
+bucket_cols = st.columns(2)
+for idx, bucket in enumerate(buckets):
+    col = bucket_cols[idx % 2]
+    with col:
+        st.markdown(
+            f"""
 <div class="metric-card" style="border-top:6px solid {AQI_COLORS[bucket['aqi']]}; margin-bottom:12px;">
   <div class="metric-label">AQI {bucket['aqi']}</div>
   <div class="metric-value">{bucket['label']}</div>
@@ -499,11 +497,8 @@ with snapshot_left:
   </div>
 </div>
 """,
-                unsafe_allow_html=True,
-            )
-
-with snapshot_right:
-    st.caption("Snapshot highlights shown on the left.")
+            unsafe_allow_html=True,
+        )
 
 st.subheader("City Table")
 table_df = summary_df[["city", "aqi", "aqi_label", "pm2_5", "pm10", "top_pollutant"]].copy()
@@ -699,11 +694,8 @@ if show_history:
                         direction="horizontal",
                         columns=2,
                         labelFontSize=11,
-                        labelPadding=2,
                         symbolSize=120,
-                        symbolPadding=4,
                         symbolStrokeWidth=3,
-                        offset=0,
                     ),
                 ),
                 tooltip=["dt", "series", "value"],
