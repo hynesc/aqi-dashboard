@@ -504,28 +504,7 @@ with snapshot_left:
             )
 
 with snapshot_right:
-    best_city = summary_df.sort_values("aqi").iloc[0]
-    worst_city = summary_df.sort_values("aqi").iloc[-1]
-    st.markdown(
-        f"""
-<div class="metric-card">
-  <div class="metric-label">Best air right now</div>
-  <div class="metric-value">{best_city['city']}</div>
-  <div class="metric-label">AQI {best_city['aqi']} • {best_city['aqi_label']}</div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f"""
-<div class="metric-card" style="margin-top:12px;">
-  <div class="metric-label">Worst air right now</div>
-  <div class="metric-value">{worst_city['city']}</div>
-  <div class="metric-label">AQI {worst_city['aqi']} • {worst_city['aqi_label']}</div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+    st.caption("Snapshot highlights shown on the left.")
 
 st.subheader("City Table")
 table_df = summary_df[["city", "aqi", "aqi_label", "pm2_5", "pm10", "top_pollutant"]].copy()
