@@ -593,7 +593,7 @@ with detail_left:
             y=alt.Y("component:N", sort="-x", title=None),
             tooltip=["component", "value"],
         )
-        .properties(height=260)
+        .properties(height=260, title="Pollutant Concentrations")
     )
     st.altair_chart(comp_chart, use_container_width=True)
 
@@ -617,7 +617,7 @@ if not forecast_df.empty:
             y=alt.Y("aqi:Q", scale=alt.Scale(domain=[1, 5])),
             tooltip=["dt", "aqi", "pm2_5", "pm10", "o3", "no2"],
         )
-        .properties(height=260)
+        .properties(height=260, title="48-Hour AQI Forecast")
     )
 
     st.altair_chart(forecast_line, use_container_width=True)
@@ -697,7 +697,7 @@ if show_history:
                 ),
                 tooltip=["dt", "series", "value"],
             )
-            .properties(height=260)
+            .properties(height=260, title="Historical AQI Trend")
         )
         if prev_24h is not None and not math.isnan(prev_24h):
             delta = latest_24h - prev_24h
@@ -712,18 +712,10 @@ if show_history:
 """,
                 unsafe_allow_html=True,
             )
-        st.markdown(
-            f"""
-<div class="metric-card" style="margin-top:12px;">
-  <div class="metric-label">How to read this chart</div>
-  <div style="color:#0f172a;font-size:0.95rem;">
-    Blue is the hourly AQI. Orange is the {rolling_hours}-hour rolling average to show the underlying trend.
-  </div>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
         st.altair_chart(history_line, use_container_width=True)
+        st.caption(
+            f"How to read this chart: Blue is the hourly AQI. Orange is the {rolling_hours}-hour rolling average."
+        )
     else:
         st.info("Historical data not available for this city or time window.")
 
